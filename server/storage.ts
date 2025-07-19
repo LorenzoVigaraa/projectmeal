@@ -1,4 +1,6 @@
 import { users, ingredients, plates, type User, type InsertUser, type Ingredient, type InsertIngredient, type Plate, type InsertPlate } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -11,26 +13,63 @@ export interface IStorage {
   getFavoritePlates(userId: number): Promise<Plate[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private ingredients: Map<number, Ingredient>;
-  private plates: Map<number, Plate>;
-  private currentUserId: number;
-  private currentIngredientId: number;
-  private currentPlateId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.ingredients = new Map();
-    this.plates = new Map();
-    this.currentUserId = 1;
-    this.currentIngredientId = 1;
-    this.currentPlateId = 1;
-    this.initializeIngredients();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
-  private initializeIngredients() {
-    const defaultIngredients: Omit<Ingredient, 'id'>[] = [
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getAllIngredients(): Promise<Ingredient[]> {
+    const allIngredients = await db.select().from(ingredients);
+    
+    // If no ingredients exist, seed the database with default ingredients
+    if (allIngredients.length === 0) {
+      await this.seedIngredients();
+      return await db.select().from(ingredients);
+    }
+    
+    return allIngredients;
+  }
+
+  async getIngredientsByType(type: string): Promise<Ingredient[]> {
+    return await db.select().from(ingredients).where(eq(ingredients.type, type));
+  }
+
+  async createPlate(insertPlate: InsertPlate): Promise<Plate> {
+    const [plate] = await db
+      .insert(plates)
+      .values({
+        ...insertPlate,
+        userId: insertPlate.userId ?? null,
+        isFavorite: insertPlate.isFavorite ?? false
+      })
+      .returning();
+    return plate;
+  }
+
+  async getUserPlates(userId: number): Promise<Plate[]> {
+    return await db.select().from(plates).where(eq(plates.userId, userId));
+  }
+
+  async getFavoritePlates(userId: number): Promise<Plate[]> {
+    return await db.select().from(plates).where(eq(plates.userId, userId));
+  }
+
+  private async seedIngredients(): Promise<void> {
+    const defaultIngredients: InsertIngredient[] = [
       { name: "صدر دجاج", type: "بروتين", calories: 165, protein: 31, price: 0.7, icon: "fas fa-drumstick-bite", color: "red" },
       { name: "تونة خفيفة", type: "بروتين", calories: 120, protein: 25, price: 0.6, icon: "fas fa-fish", color: "blue" },
       { name: "رز بني", type: "كربوهيدرات", calories: 215, protein: 5, price: 0.4, icon: "fas fa-seedling", color: "amber" },
@@ -39,56 +78,8 @@ export class MemStorage implements IStorage {
       { name: "صوص دايت", type: "صوص", calories: 40, protein: 0, price: 0.2, icon: "fas fa-tint", color: "purple" },
     ];
 
-    defaultIngredients.forEach(ingredient => {
-      const id = this.currentIngredientId++;
-      this.ingredients.set(id, { ...ingredient, id });
-    });
-  }
-
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  async getAllIngredients(): Promise<Ingredient[]> {
-    return Array.from(this.ingredients.values());
-  }
-
-  async getIngredientsByType(type: string): Promise<Ingredient[]> {
-    return Array.from(this.ingredients.values()).filter(ingredient => ingredient.type === type);
-  }
-
-  async createPlate(insertPlate: InsertPlate): Promise<Plate> {
-    const id = this.currentPlateId++;
-    const plate: Plate = { 
-      ...insertPlate, 
-      id,
-      userId: insertPlate.userId ?? null,
-      isFavorite: insertPlate.isFavorite ?? false
-    };
-    this.plates.set(id, plate);
-    return plate;
-  }
-
-  async getUserPlates(userId: number): Promise<Plate[]> {
-    return Array.from(this.plates.values()).filter(plate => plate.userId === userId);
-  }
-
-  async getFavoritePlates(userId: number): Promise<Plate[]> {
-    return Array.from(this.plates.values()).filter(plate => plate.userId === userId && plate.isFavorite);
+    await db.insert(ingredients).values(defaultIngredients);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
