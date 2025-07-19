@@ -72,7 +72,12 @@ export class MemStorage implements IStorage {
 
   async createPlate(insertPlate: InsertPlate): Promise<Plate> {
     const id = this.currentPlateId++;
-    const plate: Plate = { ...insertPlate, id };
+    const plate: Plate = { 
+      ...insertPlate, 
+      id,
+      userId: insertPlate.userId ?? null,
+      isFavorite: insertPlate.isFavorite ?? false
+    };
     this.plates.set(id, plate);
     return plate;
   }

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import PlateVisualization from "@/components/plate-visualization";
 import type { Ingredient } from "@shared/schema";
 
 interface PlateBuilderProps {
@@ -67,14 +68,14 @@ export default function PlateBuilder({ selectedIngredients, total, onRemove, onC
           )}
         </div>
 
-        {/* Empty State */}
+        {/* Plate Visualization */}
+        <div className="mb-6">
+          <PlateVisualization selectedIngredients={selectedIngredients} />
+        </div>
+
+        {/* Empty State Message */}
         {selectedIngredients.length === 0 && (
-          <div className="text-center py-8">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-              </svg>
-            </div>
+          <div className="text-center py-4">
             <p className="text-gray-500 mb-2">ابدأ بإضافة مكونات إلى الصحن</p>
             <p className="text-xs text-gray-400">اختر من المكونات المتوفرة على الجانب الأيمن</p>
           </div>
