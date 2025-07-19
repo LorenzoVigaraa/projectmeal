@@ -14,48 +14,58 @@ export default function PlateVisualization({ selectedIngredients }: PlateVisuali
     return acc;
   }, {} as Record<string, Ingredient[]>);
 
-  // Define positions and colors for different ingredient types
-  const getIngredientStyle = (type: string, index: number, total: number) => {
-    const positions = {
+  // Define designated sections for different ingredient types on the plate
+  const getIngredientPosition = (type: string, index: number, totalOfType: number) => {
+    // Define quadrants and sections of the plate
+    const sections = {
       "بروتين": { 
-        x: 45, 
-        y: 40, 
-        color: "#D2691E", // Saddle brown for protein
-        width: 25,
-        height: 15
+        centerX: 65,   // Right side of plate
+        centerY: 45,   // Center-right
+        radiusX: 15,   // Horizontal spread
+        radiusY: 12,   // Vertical spread
+        color: "#D2691E"
       },
       "كربوهيدرات": { 
-        x: 25, 
-        y: 55, 
-        color: "#DAA520", // Goldenrod for carbs
-        width: 20,
-        height: 20
+        centerX: 35,   // Left side of plate
+        centerY: 45,   // Center-left
+        radiusX: 15,   
+        radiusY: 12,   
+        color: "#DAA520"
       },
       "خضار": { 
-        x: 65, 
-        y: 50, 
-        color: "#228B22", // Forest green for vegetables
-        width: 15,
-        height: 12
+        centerX: 50,   // Top center of plate
+        centerY: 25,   // Upper section
+        radiusX: 20,   
+        radiusY: 10,   
+        color: "#228B22"
       },
       "صوص": { 
-        x: 50, 
-        y: 30, 
-        color: "#8B4513", // Saddle brown for sauce
-        width: 8,
-        height: 8
+        centerX: 50,   // Bottom center
+        centerY: 65,   // Lower section (small drizzles)
+        radiusX: 12,   
+        radiusY: 8,    
+        color: "#8B4513"
       }
     };
 
-    const baseStyle = positions[type] || positions["خضار"];
+    const section = sections[type] || sections["خضار"];
     
-    // Slightly offset multiple items of same type
-    const offset = index * 3;
+    // For multiple items of same type, arrange them in their designated section
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (totalOfType > 1) {
+      // Create a small cluster within the section
+      const angle = (index * 360 / totalOfType) * Math.PI / 180;
+      const radius = Math.min(section.radiusX, section.radiusY) * 0.6;
+      offsetX = Math.cos(angle) * radius;
+      offsetY = Math.sin(angle) * radius;
+    }
     
     return {
-      ...baseStyle,
-      x: baseStyle.x + (offset % 10),
-      y: baseStyle.y + Math.floor(offset / 10) * 5
+      x: section.centerX + offsetX,
+      y: section.centerY + offsetY,
+      color: section.color
     };
   };
 
@@ -141,12 +151,33 @@ export default function PlateVisualization({ selectedIngredients }: PlateVisuali
           opacity="0.7"
         />
 
-        {/* Render realistic food ingredients on the plate */}
+        {/* Optional: Subtle section guides (only visible when empty) */}
+        {selectedIngredients.length === 0 && (
+          <g opacity="0.15">
+            {/* Protein section guide - right */}
+            <circle cx="130" cy="90" r="25" fill="none" stroke="#D2691E" strokeWidth="1" strokeDasharray="3,3"/>
+            <text x="130" y="95" textAnchor="middle" fill="#D2691E" fontSize="8" fontFamily="Arial, sans-serif">بروتين</text>
+            
+            {/* Carbs section guide - left */}
+            <circle cx="70" cy="90" r="25" fill="none" stroke="#DAA520" strokeWidth="1" strokeDasharray="3,3"/>
+            <text x="70" y="95" textAnchor="middle" fill="#DAA520" fontSize="8" fontFamily="Arial, sans-serif">كربوهيدرات</text>
+            
+            {/* Vegetables section guide - top */}
+            <ellipse cx="100" cy="50" rx="35" ry="18" fill="none" stroke="#228B22" strokeWidth="1" strokeDasharray="3,3"/>
+            <text x="100" y="55" textAnchor="middle" fill="#228B22" fontSize="8" fontFamily="Arial, sans-serif">خضار</text>
+            
+            {/* Sauce section guide - bottom */}
+            <ellipse cx="100" cy="130" rx="20" ry="12" fill="none" stroke="#8B4513" strokeWidth="1" strokeDasharray="3,3"/>
+            <text x="100" y="135" textAnchor="middle" fill="#8B4513" fontSize="8" fontFamily="Arial, sans-serif">صوص</text>
+          </g>
+        )}
+
+        {/* Render realistic food ingredients on the plate in designated sections */}
         {Object.entries(groupedIngredients).map(([type, ingredients]) =>
           ingredients.map((ingredient, index) => {
-            const style = getIngredientStyle(type, index, ingredients.length);
-            const x = style.x * 2;
-            const y = style.y * 2;
+            const position = getIngredientPosition(type, index, ingredients.length);
+            const x = position.x * 2;
+            const y = position.y * 2;
             
             return (
               <g key={`${ingredient.id}-${index}`}>
