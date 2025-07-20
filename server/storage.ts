@@ -1,6 +1,6 @@
-import { users, ingredients, plates, type User, type InsertUser, type Ingredient, type InsertIngredient, type Plate, type InsertPlate } from "@shared/schema";
+import { users, ingredients, plates, orders, type User, type InsertUser, type Ingredient, type InsertIngredient, type Plate, type InsertPlate, type Order, type InsertOrder } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -11,6 +11,10 @@ export interface IStorage {
   createPlate(plate: InsertPlate): Promise<Plate>;
   getUserPlates(userId: number): Promise<Plate[]>;
   getFavoritePlates(userId: number): Promise<Plate[]>;
+  getPlate(id: number): Promise<Plate | undefined>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  getAllOrders(): Promise<Order[]>;
+  updateOrderStatus(orderId: number, status: string): Promise<Order>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -66,6 +70,32 @@ export class DatabaseStorage implements IStorage {
 
   async getFavoritePlates(userId: number): Promise<Plate[]> {
     return await db.select().from(plates).where(eq(plates.userId, userId));
+  }
+
+  async getPlate(id: number): Promise<Plate | undefined> {
+    const [plate] = await db.select().from(plates).where(eq(plates.id, id));
+    return plate || undefined;
+  }
+
+  async createOrder(insertOrder: InsertOrder): Promise<Order> {
+    const [order] = await db
+      .insert(orders)
+      .values(insertOrder)
+      .returning();
+    return order;
+  }
+
+  async getAllOrders(): Promise<Order[]> {
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  }
+
+  async updateOrderStatus(orderId: number, status: string): Promise<Order> {
+    const [order] = await db
+      .update(orders)
+      .set({ status })
+      .where(eq(orders.id, orderId))
+      .returning();
+    return order;
   }
 
   private async seedIngredients(): Promise<void> {

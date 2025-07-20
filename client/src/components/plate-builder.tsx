@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import PlateVisualization from "@/components/plate-visualization";
+import { apiRequest } from "@/lib/queryClient";
 import type { Ingredient } from "@shared/schema";
 
 interface PlateBuilderProps {
@@ -31,19 +34,73 @@ const textColorMap: Record<string, string> = {
 
 export default function PlateBuilder({ selectedIngredients, total, onRemove, onClear }: PlateBuilderProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  // Create plate mutation
+  const createPlateMutation = useMutation({
+    mutationFn: async (plateData: any) => {
+      const response = await apiRequest('POST', '/api/plates', plateData);
+      return response.json();
+    },
+    onSuccess: (plate) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/plates'] });
+      setLocation(`/checkout/${plate.id}`);
+    },
+    onError: () => {
+      toast({
+        title: "خطأ في الحفظ",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSaveToFavorites = () => {
-    toast({
-      title: "تم الحفظ!",
-      description: "تم حفظ وجبتك في المفضلة بنجاح",
-    });
+    if (selectedIngredients.length === 0) {
+      toast({
+        title: "الطبق فارغ",
+        description: "يرجى إضافة مكونات أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const plateData = {
+      name: `طبق مخصص - ${new Date().toLocaleDateString('ar-SA')}`,
+      ingredientIds: selectedIngredients.map(ingredient => ingredient.id.toString()),
+      totalCalories: total.calories,
+      totalProtein: total.protein,
+      totalPrice: total.price,
+      isFavorite: true,
+      userId: 1, // For demo purposes
+    };
+
+    createPlateMutation.mutate(plateData);
   };
 
   const handleOrderMeal = () => {
-    toast({
-      title: "تم الطلب!",
-      description: "تم إرسال طلب وجبتك، ستصلك قريباً",
-    });
+    if (selectedIngredients.length === 0) {
+      toast({
+        title: "الطبق فارغ",
+        description: "يرجى إضافة مكونات أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // First save the plate, then redirect to checkout
+    const plateData = {
+      name: `طبق للطلب - ${new Date().toLocaleDateString('ar-SA')}`,
+      ingredientIds: selectedIngredients.map(ingredient => ingredient.id.toString()),
+      totalCalories: total.calories,
+      totalProtein: total.protein,
+      totalPrice: total.price,
+      isFavorite: false,
+      userId: 1, // For demo purposes
+    };
+
+    createPlateMutation.mutate(plateData);
   };
 
   return (
@@ -148,21 +205,23 @@ export default function PlateBuilder({ selectedIngredients, total, onRemove, onC
             <div className="mt-6 space-y-3">
               <Button 
                 onClick={handleSaveToFavorites}
+                disabled={createPlateMutation.isPending}
                 className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors"
               >
                 <svg className="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                 </svg>
-                حفظ في المفضلة
+                {createPlateMutation.isPending ? 'جاري الحفظ...' : 'حفظ في المفضلة'}
               </Button>
               <Button 
                 onClick={handleOrderMeal}
+                disabled={createPlateMutation.isPending}
                 className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
               >
                 <svg className="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
                 </svg>
-                طلب الوجبة
+                {createPlateMutation.isPending ? 'جاري التحضير...' : 'طلب الوجبة'}
               </Button>
             </div>
 
