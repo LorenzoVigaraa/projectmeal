@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlateSchema } from "@shared/schema";
+import { insertPlateSchema, insertOrderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all ingredients
@@ -55,6 +55,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(plates);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch favorite plates" });
+    }
+  });
+
+  // Get single plate
+  app.get("/api/plate/:id", async (req, res) => {
+    try {
+      const plateId = parseInt(req.params.id);
+      const plate = await storage.getPlate(plateId);
+      if (!plate) {
+        return res.status(404).json({ message: "Plate not found" });
+      }
+      res.json(plate);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch plate" });
+    }
+  });
+
+  // Create order
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const orderData = insertOrderSchema.parse(req.body);
+      const order = await storage.createOrder(orderData);
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to create order" });
+    }
+  });
+
+  // Get all orders (for developer dashboard)
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const orders = await storage.getAllOrders();
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  // Update order status
+  app.patch("/api/orders/:id/status", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { status } = req.body;
+      const order = await storage.updateOrderStatus(orderId, status);
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to update order status" });
     }
   });
 
