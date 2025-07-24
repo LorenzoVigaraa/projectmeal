@@ -1,3 +1,7 @@
+// Add the following to your .env file (do not commit .env to git):
+// VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key-here
+//
+// Make sure .env is in your .gitignore
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -40,10 +44,11 @@ export default function Checkout() {
   const [match, params] = useRoute('/checkout/:plateId');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<any>(null);
-  const [marker, setMarker] = useState<any>(null);
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // Remove Google Maps related state and refs
+  // const mapRef = useRef<HTMLDivElement>(null);
+  // const [map, setMap] = useState<any>(null);
+  // const [marker, setMarker] = useState<any>(null);
+  // const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const plateId = params?.plateId ? parseInt(params.plateId) : null;
 
@@ -64,76 +69,78 @@ export default function Checkout() {
     enabled: !!plateId,
   });
 
-  // Initialize Google Maps
-  useEffect(() => {
-    const initMap = () => {
-      if (!mapRef.current || !window.google) return;
+  // Remove Google Maps useEffect
+  // useEffect(() => {
+  //   const initMap = () => {
+  //     if (!mapRef.current || !window.google) return;
 
-      const defaultLocation = { lat: 24.7136, lng: 46.6753 }; // Riyadh, Saudi Arabia
+  //     const defaultLocation = { lat: 24.7136, lng: 46.6753 }; // Riyadh, Saudi Arabia
       
-      const mapInstance = new window.google.maps.Map(mapRef.current, {
-        zoom: 12,
-        center: defaultLocation,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-      });
+  //     const mapInstance = new window.google.maps.Map(mapRef.current, {
+  //       zoom: 12,
+  //       center: defaultLocation,
+  //       mapTypeControl: false,
+  //       streetViewControl: false,
+  //       fullscreenControl: false,
+  //     });
 
-      const markerInstance = new window.google.maps.Marker({
-        position: defaultLocation,
-        map: mapInstance,
-        draggable: true,
-        title: 'موقع التوصيل',
-      });
+  //     const markerInstance = new window.google.maps.Marker({
+  //       position: defaultLocation,
+  //       map: mapInstance,
+  //       draggable: true,
+  //       title: 'موقع التوصيل',
+  //     });
 
-      setMap(mapInstance);
-      setMarker(markerInstance);
-      setSelectedLocation(defaultLocation);
+  //     setMap(mapInstance);
+  //     setMarker(markerInstance);
+  //     setSelectedLocation(defaultLocation);
 
-      // Add click listener to map
-      mapInstance.addListener('click', (event: any) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
+  //     // Add click listener to map
+  //     mapInstance.addListener('click', (event: any) => {
+  //       const lat = event.latLng.lat();
+  //       const lng = event.latLng.lng();
         
-        markerInstance.setPosition({ lat, lng });
-        setSelectedLocation({ lat, lng });
+  //       markerInstance.setPosition({ lat, lng });
+  //       setSelectedLocation({ lat, lng });
         
-        // Reverse geocoding to get address
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
-          if (status === 'OK' && results[0]) {
-            form.setValue('deliveryAddress', results[0].formatted_address);
-          }
-        });
-      });
+  //       // Reverse geocoding to get address
+  //       const geocoder = new window.google.maps.Geocoder();
+  //       geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+  //         if (status === 'OK' && results[0]) {
+  //           form.setValue('deliveryAddress', results[0].formatted_address);
+  //         }
+  //       });
+  //     });
 
-      // Add drag listener to marker
-      markerInstance.addListener('dragend', (event: any) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
-        setSelectedLocation({ lat, lng });
+  //     // Add drag listener to marker
+  //     markerInstance.addListener('dragend', (event: any) => {
+  //       const lat = event.latLng.lat();
+  //       const lng = event.latLng.lng();
+  //       setSelectedLocation({ lat, lng });
         
-        // Reverse geocoding
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
-          if (status === 'OK' && results[0]) {
-            form.setValue('deliveryAddress', results[0].formatted_address);
-          }
-        });
-      });
-    };
+  //       // Reverse geocoding
+  //       const geocoder = new window.google.maps.Geocoder();
+  //       geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+  //         if (status === 'OK' && results[0]) {
+  //           form.setValue('deliveryAddress', results[0].formatted_address);
+  //         }
+  //       });
+  //     });
+  //   };
 
-    // Load Google Maps API
-    if (!window.google) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=REMOVED&libraries=places&language=ar`;
-      script.async = true;
-      script.onload = initMap;
-      document.head.appendChild(script);
-    } else {
-      initMap();
-    }
-  }, [form]);
+  //   // Load Google Maps API
+  //   if (!window.google) {
+  //     const script = document.createElement('script');
+  //     // Use environment variable for API key
+  //     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  //     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ar`;
+  //     script.async = true;
+  //     script.onload = initMap;
+  //     document.head.appendChild(script);
+  //   } else {
+  //     initMap();
+  //   }
+  // }, [form]);
 
   // Create order mutation
   const createOrderMutation = useMutation({
@@ -166,10 +173,10 @@ export default function Checkout() {
   });
 
   const onSubmit = (data: OrderFormValues) => {
-    if (!selectedLocation || !plate) {
+    if (!plate) {
       toast({
-        title: 'يرجى تحديد الموقع',
-        description: 'اختر موقع التوصيل على الخريطة',
+        title: 'يرجى تحديد الطبق',
+        description: 'اختر الطبق أولاً',
         variant: 'destructive',
       });
       return;
@@ -180,8 +187,6 @@ export default function Checkout() {
       customerName: data.customerName,
       customerPhone: data.customerPhone,
       deliveryAddress: data.deliveryAddress,
-      latitude: selectedLocation.lat,
-      longitude: selectedLocation.lng,
       paymentMethod: data.paymentMethod,
       totalAmount: plate.totalPrice,
       notes: data.notes || null,
@@ -385,19 +390,6 @@ export default function Checkout() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Google Maps */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>حدد موقع التوصيل</CardTitle>
-            <CardDescription>
-              اضغط على الخريطة أو اسحب العلامة لتحديد موقع التوصيل الدقيق
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div ref={mapRef} className="w-full h-96 rounded-lg border" />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
